@@ -5,31 +5,18 @@
 
 /* global console, document, Excel, Office */
 
-// The initialize function must be run each time a new page is loaded
-Office.onReady(() => {
-  document.getElementById("sideload-msg").style.display = "none";
-  document.getElementById("app-body").style.display = "flex";
-  document.getElementById("run").onclick = run;
+let pyodide;
+
+async function initPyodide() {
+  pyodide = await loadPyodide({
+    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/"
+  });
+  console.log("✅ Pyodide listo");
+}
+
+Office.onReady(async (info) => {
+  if (info.host === Office.HostType.Excel) {
+    await initPyodide();
+  }
 });
 
-export async function run() {
-  try {
-    await Excel.run(async (context) => {
-      /**
-       * Insert your Excel code here
-       */
-      const range = context.workbook.getSelectedRange();
-
-      // Read the range address
-      range.load("address");
-
-      // Update the fill color
-      range.format.fill.color = "yellow";
-
-      await context.sync();
-      console.log(`The range address was ${range.address}.`);
-    });
-  } catch (error) {
-    console.error(error);
-  }
-}

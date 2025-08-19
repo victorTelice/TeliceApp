@@ -88,51 +88,61 @@ async function leerDatosExcel() {
         
     });
 }
-
- /**
-    * Returns the sum of input numbers.
+async function runPython() {
+  let result = await pyodide.runPythonAsync(`
+    import math
+    math.sqrt(49)
+  `);
+  console.log("Resultado desde Python:", result);
+}
+ 
+ 
+  /**
+    * Returns Fr.
     * @customfunction
 */
 function calcularFr() {
-
-
     // Leer los datos desde Excel
     const coordDescentramientos = leerDatosExcel();
     const t_hc = 3150; // Tensión del hilo conductor (ejemplo)
+    try {
+        // El código Python que vamos a ejecutar
+      const pythonCode = `
+      import numpy as np
 
-    // El código Python que vamos a ejecutar
-    const pythonCode = `
-    import numpy as np
+      def Fr_Calculo_f(Coord_descentramientos, t_hc):
+          """
+          Calcula las fuerzas radiales a partir de las coordenadas con descentramientos
+          y la tensión del hilo conductor.
+          """
 
-    def Fr_Calculo_f(Coord_descentramientos, t_hc):
-        """
-        Calcula las fuerzas radiales a partir de las coordenadas con descentramientos
-        y la tensión del hilo conductor.
-        """
+          Coord_descentramientos = np.array(Coord_descentramientos)
+          dx = np.diff(Coord_descentramientos[:, 0])  # Diferencia en X
+          dy = np.diff(Coord_descentramientos[:, 1])  # Diferencia en Y
+          m = dy / dx  # Pendientes
 
-        Coord_descentramientos = np.array(Coord_descentramientos)
-        dx = np.diff(Coord_descentramientos[:, 0])  # Diferencia en X
-        dy = np.diff(Coord_descentramientos[:, 1])  # Diferencia en Y
-        m = dy / dx  # Pendientes
+          # Cálculo de los ángulos alfa
+          dm = m[1:] - m[:-1]
+          denom = 1 + m[1:] * m[:-1]
+          delta_theta = np.arctan(dm / denom)
+          alfa = np.pi - delta_theta
 
-        # Cálculo de los ángulos alfa
-        dm = m[1:] - m[:-1]
-        denom = 1 + m[1:] * m[:-1]
-        delta_theta = np.arctan(dm / denom)
-        alfa = np.pi - delta_theta
+          # Calcular las fuerzas radiales
+          Fr_hc_core = np.sqrt(2 * t_hc**2 + 2 * t_hc**2 * np.cos(alfa)) * np.sign(delta_theta)
 
-        # Calcular las fuerzas radiales
-        Fr_hc_core = np.sqrt(2 * t_hc**2 + 2 * t_hc**2 * np.cos(alfa)) * np.sign(delta_theta)
+          # Añadir ceros en los extremos (anclajes)
+          Fr_hc = np.concatenate(([0], Fr_hc_core, [0]))
 
-        # Añadir ceros en los extremos (anclajes)
-        Fr_hc = np.concatenate(([0], Fr_hc_core, [0]))
+          return Fr_hc.reshape(-1, 1)
+      `;
 
-        return Fr_hc.reshape(-1, 1)
-    `;
+      // Ejecutar código Python en Pyodide
+      
 
-    // Ejecutar código Python en Pyodide
+      // Mostrar el resultado en la consola
+      console.log("Fuerzas Radiales:", result);
+    } catch (error) {
+        console.error("Error al calcular las fuerzas radiales:", error);
     
-
-    // Mostrar el resultado en la consola
-    console.log("Fuerzas Radiales:", result);
+    }
 }

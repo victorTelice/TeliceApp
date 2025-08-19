@@ -4,9 +4,9 @@
   <Version>1.0.0.0</Version>
   <ProviderName>Victor</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="addinFunc"/>
+  <DisplayName DefaultValue="Telice Add-in"/>
   <Description DefaultValue="Write your own Excel functions in JavaScript."/>
-  <IconUrl DefaultValue="https://localhost:3000/assets/check.jpg"/>
+  <IconUrl DefaultValue="https://localhost:3000/assets/pngwing.com.png"/>
   <SupportUrl DefaultValue="https://www.contoso.com/help"/>
   <AppDomains>
     <AppDomain>https://www.contoso.com</AppDomain>
@@ -83,7 +83,7 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon" DefaultValue="https://localhost:3000/assets/check.jpg"/>
+        <bt:Image id="Icon" DefaultValue="https://localhost:3000/assets/pngwing.com.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Functions.Script.Url" DefaultValue="https://localhost:3000/functions.js"/>
@@ -95,7 +95,7 @@
         <bt:String id="Functions.Namespace" DefaultValue="Telice"/>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with your sample add-in!"/>
         <bt:String id="CommandsGroup.Label" DefaultValue="Telice Add-in"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="Cositas"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Telice"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description" DefaultValue="Your sample add-in loaded successfully. Go to the HOME tab and click the 'Show Task Pane' button to get started."/>
