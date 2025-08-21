@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Telice Add-in</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <!-- pyodide -->
+    
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <script src="./taskpane.js"></script>
+        <!-- Fluent UI -->
+    <link rel="stylesheet"
+        href="https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/office-ui-fabric-core/11.1.0/css/fabric.min.css" />
+
+    <!-- Template styles -->
+    <link href="taskpane.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <header class="ms-welcome__header ms-bgColor-neutralLighter">
+        <img width="90" height="90" src="../../assets/pngwing.com.png" alt="Telice" title="Telice" />
+        <h1 class="ms-font-su">Funciones</h1>
+    </header>
+
+    <!-- Tabs debajo del logo -->
+    <div class="tabs">
+        <button class="tab tab-active" data-tab="archivos">Archivos</button>
+        <button class="tab" data-tab="validaciones">Validaciones</button>
+    </div>
+
+    <!-- Contenido de tabs -->
+    <main id="app-body" class="ms-welcome__main">
+        <!-- Archivos -->
+        <div id="tab-archivos" class="tab-content">
+            <h2 class="ms-font-xl">Gestión de Archivos</h2>
+            <p>Introducce archivo via:</p>
+            <input type="file" id="fileVia" accept=".via" />
+            
+            <p>Introducce archivo conductores:</p>
+            <input type="file" id="fileCond" accept=".cnd" />
+            
+            <p>Introducce archivo Herrajes de mensulas:</p>
+            <input type="file" id="fileHerMen" accept=".her_men" />
+            
+            <p>Introducce archivo Herrajaes de Catenaria:</p>
+            <input type="file" id="fileHerCat" accept=".her_cat" />
+            
+            <p>Introducce archivo tipos de mensulas:</p>
+            <input type="file" id="fileDefMen" accept=".def_men" />
+            
+            <p>Introducce archivo trazado:</p>
+            <input type="file" id="fileTrz" accept=".trz" />
+            
+            <p>Introducce archivo seccionamientos:</p>
+            <input type="file" id="fileSecc" accept=".secc" />
+            <button id="loadFiles">Procesar</button>
+            <pre id="output"></pre>
+        </div>
+
+        <!-- Validaciones -->
+        <div id="tab-validaciones" class="tab-content hidden">
+            <h2 class="ms-font-xl">Validaciones</h2>
+            <p>Ejecuta validaciones sobre los datos de Excel.</p>
+            <button id="btnCalcularFr" class="ms-Button ms-Button--hero">
+                <span class="ms-Button-label">Calcular Fuerzas Radiales</span>
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // Script simple para activar tabs
+        const tabs = document.querySelectorAll(".tab");
+        const contents = document.querySelectorAll(".tab-content");
+
+        tabs.forEach(tab => {
+            tab.addEventListener("click", () => {
+                tabs.forEach(t => t.classList.remove("tab-active"));
+                tab.classList.add("tab-active");
+
+                contents.forEach(c => c.classList.add("hidden"));
+                document.getElementById("tab-" + tab.dataset.tab).classList.remove("hidden");
+            });
+        });
+    </script>
+</body>
+</html>
