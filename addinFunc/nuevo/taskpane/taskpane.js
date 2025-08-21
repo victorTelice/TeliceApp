@@ -1,5 +1,5 @@
 // taskpane.js
-import pipeline from "./pipeline.py"
+//import pipeline from "./pipeline.py"
 let pyodide;
 
 async function initPyodide() {
@@ -9,7 +9,7 @@ async function initPyodide() {
   console.log("✅ Pyodide listo");
 
   // Cargar pipeline.py en el FS virtual
-  pyodide.FS.writeFile("pipeline.py", pipeline);
+  //pyodide.FS.writeFile("pipeline.py", pipeline);
   //await pyodide.runPythonAsync("import pipeline");
 }
 
