@@ -291,13 +291,14 @@ async function insertIntoExcel(result) {
       // Crear nueva hoja para cada key
       let sheetName = key.substring(0, 31); // Excel limita nombres a 31 chars
       let sheet;
+      let sheets = context.workbook.worksheets;
+      sheets.load("items/name");
+      await context.sync();
 
-      // Si ya existe, la borramos
-      try {
-        context.workbook.worksheets.getItem(sheetName).delete();
-      } catch (e) {
-        // No existe, no pasa nada
-      }
+      let existingSheet = sheets.items.find(s => s.name === sheetName);
+      if (existingSheet) {
+        existingSheet.delete();
+    }
 
       sheet = context.workbook.worksheets.add(sheetName);
 
