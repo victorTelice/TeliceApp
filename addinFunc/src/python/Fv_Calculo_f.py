@@ -1,5 +1,5 @@
 import numpy as np
-from utils.logger import Logger 
+from logger import Logger 
 def Fv_Calculo_f(datos_tabla_vanos, Coord_descentramientos, p_tabla_tipo, n_hhcc, 
                 tipo_pendolado, ro_hc, t_hc, t_hs, rel_comp, Ancho_via, Carril):
     """
@@ -204,36 +204,30 @@ def Fv_Calculo_f(datos_tabla_vanos, Coord_descentramientos, p_tabla_tipo, n_hhcc
     htt = np.where(p_tabla_tipo[:, 4] == 1, 
                    np.abs(hhc * np.cos(beta) + desc * np.sin(np.abs(beta))) + np.abs(peraltes) / 2000, 
                    np.abs(hhc * np.cos(beta) - desc * np.sin(np.abs(beta))) + np.abs(peraltes) / 2000)
-    #htt= htt[0]
+   
     # Calcular coeficientes de tensiones verticales
     Coeficientes_tensiones_verticales = np.zeros((len(tipo_mensula), 2))
-    aux1= (htt[1:] - htt[:-1])
+   
+    # Diferencias entre htt consecutivos
+    aux1 = np.diff(htt)
     
-        # Coeficiente izquierdo
-    for i in range(1, len(tipo_mensula)):  # en Python empieza en 1 (MATLAB = 2)
-        Coeficientes_tensiones_verticales[i, 0] = (
-            (htt[i] - htt[i-1]) / datos_vanos[i-1]
-        )
+    # Coeficiente izquierdo (vectorizado)
+    Coeficientes_tensiones_verticales[1:, 0] = aux1 / datos_vanos
 
-    # Coeficiente derecho
-    for i in range(0, len(tipo_mensula)-1):  # MATLAB = 1:size-1
-        Coeficientes_tensiones_verticales[i, 1] = (
-            (htt[i] - htt[i+1]) / datos_vanos[i]
-        )
+    # Coeficiente derecho (vectorizado)
+    Coeficientes_tensiones_verticales[:-1, 1] = -aux1 / datos_vanos
 
+    # Suma de coeficientes
+    Coeficientes = Coeficientes_tensiones_verticales.sum(axis=1)
 
-
-    Coeficientes = np.sum(Coeficientes_tensiones_verticales, axis=1)
-    
     # Calculamos las fuerzas verticales
     Fv_hc = np.zeros(len(tipo_mensula)-2, dtype=np.float32)
-    
 
-    for i in range(len(tipo_mensula) - 2):
-        Fv_hc[i] = (ro_hc * (dist_1pend[i]/2 + dist_1pend[i+1]/2)) + t_hc * Coeficientes[i+1]
-    
-    Fv_hc = np.concatenate(([0], Fv_hc, [0]))
-    # Ajustar fuerzas según tipo de mensula
+    # Fuerzas verticales 
+    Fv_hc_core = ro_hc * (dist_1pend[:-1]/2 + dist_1pend[1:]/2) + t_hc * Coeficientes[1:-1]
+    Fv_hc = np.concatenate(([0], Fv_hc_core.astype(np.float32), [0]))
+
+   # Ajustar fuerzas según tipo de mensula
     for i in range(len(tipo_mensula)):
         if tipo_mensula[i] == 'Anclaje': 
             Fv_hc[i] = (t_hc + t_hs) / rel_comp

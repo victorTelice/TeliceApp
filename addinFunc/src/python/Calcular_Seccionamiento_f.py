@@ -1,6 +1,6 @@
 import numpy as np
 import Fr_Calculo_f, Fv_Calculo_f
-from utils.logger import Logger 
+from logger import Logger 
 
 def Seccionamientos_Calculo_f(datos_tabla_vanos, datos_vanos, datos_desc, datos_alt, pki, 
                              datos_tabla_tramos, Coord_trazado, npuntos, t_hc, t_hs, 
@@ -360,7 +360,8 @@ def Seccionamientos_Calculo_f(datos_tabla_vanos, datos_vanos, datos_desc, datos_
     # Coordenadas con descentramientos
     x_desc = x_poste + p_tabla_tipo[:, 10] * np.cos(vectores_normal)
     y_desc = y_poste + p_tabla_tipo[:, 10] * np.sin(vectores_normal)
-    Coord_descentramientos = np.column_stack((x_desc, y_desc))
+    Coord_descentramientos = np.column_stack((x_desc, y_desc)).astype(float)
+    
     
     for i in range(len(datos_vanos)):   
         if p_tabla_tipo[i, 0] == 2:   # Recta-Círculo

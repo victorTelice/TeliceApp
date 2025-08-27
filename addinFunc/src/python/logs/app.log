@@ -1,0 +1,22 @@
+2025-08-25 10:28:13 | INFO | -------INICIO PROGRAMA-------
+2025-08-25 10:28:13 | INFO | Rutas Leidas Correctamente
+2025-08-25 10:28:13 | INFO | Datos cargados correctamente de los archivos de matlab
+2025-08-25 10:28:13 | WARNING | Llamada a la función Trazado_Calculo_f
+2025-08-25 10:28:13 | INFO | Cálculos trazado realizados correctamente
+2025-08-25 10:28:13 | WARNING | Llamada a la función Seccionamiento_Calculo_f
+2025-08-25 10:28:13 | WARNING | Llamada a la función Fr_Calculo_f
+2025-08-25 10:28:13 | INFO | Cálculos Fuerza_radial realizados correctamente
+2025-08-25 10:28:13 | WARNING | Llamada a la función Fv_Calculo_f
+2025-08-25 10:28:13 | INFO | Cálculos Fuerza_vertical realizados correctamente
+2025-08-25 10:28:13 | INFO | Cálculos seccionamiento realizados correctamente
+2025-08-25 10:28:13 | INFO | Datos leídos correctamente del excel de datos topográficos
+2025-08-25 10:28:13 | WARNING | Llamada a la función Mensulas_Calculo_f
+2025-08-25 10:28:13 | WARNING | Llamada a la función Seccionamiento_Calculo_f
+2025-08-25 10:28:13 | WARNING | Llamada a la función Fr_Calculo_f
+2025-08-25 10:28:13 | INFO | Cálculos Fuerza_radial realizados correctamente
+2025-08-25 10:28:13 | WARNING | Llamada a la función Fv_Calculo_f
+2025-08-25 10:28:13 | INFO | Cálculos Fuerza_vertical realizados correctamente
+2025-08-25 10:28:13 | INFO | Cálculos ménsulas realizados correctamente
+2025-08-25 10:28:13 | DEBUG | Coordenadas mensulas guardadas en el .txt
+2025-08-25 10:28:13 | DEBUG | Coordenadas mensulas comparadas (ver terminal)
+2025-08-25 10:28:13 | INFO | -------FIN PROGRAMA-------

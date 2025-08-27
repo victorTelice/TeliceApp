@@ -88,100 +88,30 @@ async function leerDatosExcel() {
         
     });
 }
-async function runPythonFR(Coord_descentramientos, t_hc) {
-  
 
-  let result = await pyodide.runPythonAsync(`
-    import numpy as np
+/**
+ * @customfunction
+ * @param {number[][]} Coord_descentramientos
+ * @param {number} t_hc
+ * @returns {number[][]}
+ */
+export async function CalculaFR(Coord_descentramientos, t_hc) {
+  const pyodide = await loadPyodide();
 
-    def Fr_Calculo_f(Coord_descentramientos, t_hc):
-        """
-        Calcula las fuerzas radiales.
-        
-        Parámetros:
-        - Coord_descentramientos: Matriz numpy con las coordenadas con los descentramientos.
-        - t_hc: Valor de la tensión del hilo conductor.
-        
-        Returns:
-        - Fr_Calculo: Array con las fuerzas radiales calculadas.
-        """
+  // Pasar parámetros a Python
+  pyodide.globals.set("Coord_descentramientos", Coord_descentramientos);
+  pyodide.globals.set("t_hc", t_hc);
 
-        t_hc=float(t_hc)
-        # 1. Calcular pendientes recta-vanos
-        m = np.zeros(len(Coord_descentramientos) - 1)
-        for i in range(len(Coord_descentramientos) - 1):
-            m[i] = (Coord_descentramientos[i, 1] - Coord_descentramientos[i+1, 1]) / (Coord_descentramientos[i, 0] - Coord_descentramientos[i+1, 0])
-
-        # 2. Calcular ángulos alfa entre dos vanos
-        alfa = np.zeros(len(m) - 1)
-        for i in range(len(m) - 1):
-            alfa[i] = np.pi - np.arctan((m[i+1] - m[i]) / (1 + m[i+1] * m[i]))
-
-        # 3. Calcular Fr_hc
-        Fr_hc = np.zeros(len(m) - 1).astype(float)
-        for i in range(len(m) - 1):
-
-            Fr_hc[i] = np.sqrt(t_hc**2 + t_hc**2 + 2 * t_hc * t_hc * np.cos(alfa[i])) * np.sign(np.arctan((m[i+1] - m[i]) / (1 + m[i+1] * m[i])))
-
-        # 4. Agregar ceros en los anclajes
-        Fr_hc = np.concatenate(([0], Fr_hc, [0]))
-
-        # 5. Preparar tabla para el GUI (columna)
-        Fr_Calculo = Fr_hc.reshape(-1, 1)
-        return Fr_Calculo
-    Fr_Calculo_f(${JSON.stringify(Coord_descentramientos)}, ${t_hc})
+  // Ejecutar Python y convertir a listas JS
+  await pyodide.runPythonAsync(`
+import Fr_Calculo_f as fr
+import js
+res = fr.Fv_Calculo_f(Coord_descentramientos, t_hc)
+js.result = res.tolist()  # numpy -> listas anidadas
   `);
+
+  // Recuperar el resultado en JS
+  const result = JSON.parse(result);
+
   return result;
-  console.log("Resultado desde Python:", result);
-}
- 
- 
-  /**
-    * Returns Fr.
-    * @customfunction
-*/
-function calcularFr() {
-    // Leer los datos desde Excel
-    const coordDescentramientos = leerDatosExcel();
-    const t_hc = 3150; // Tensión del hilo conductor (ejemplo)
-    try {
-        // El código Python que vamos a ejecutar
-      const pythonCode = `
-      import numpy as np
-
-      def Fr_Calculo_f(Coord_descentramientos, t_hc):
-          """
-          Calcula las fuerzas radiales a partir de las coordenadas con descentramientos
-          y la tensión del hilo conductor.
-          """
-
-          Coord_descentramientos = np.array(Coord_descentramientos)
-          dx = np.diff(Coord_descentramientos[:, 0])  # Diferencia en X
-          dy = np.diff(Coord_descentramientos[:, 1])  # Diferencia en Y
-          m = dy / dx  # Pendientes
-
-          # Cálculo de los ángulos alfa
-          dm = m[1:] - m[:-1]
-          denom = 1 + m[1:] * m[:-1]
-          delta_theta = np.arctan(dm / denom)
-          alfa = np.pi - delta_theta
-
-          # Calcular las fuerzas radiales
-          Fr_hc_core = np.sqrt(2 * t_hc**2 + 2 * t_hc**2 * np.cos(alfa)) * np.sign(delta_theta)
-
-          # Añadir ceros en los extremos (anclajes)
-          Fr_hc = np.concatenate(([0], Fr_hc_core, [0]))
-
-          return Fr_hc.reshape(-1, 1)
-      `;
-
-      // Ejecutar código Python en Pyodide
-      
-
-      // Mostrar el resultado en la consola
-      console.log("Fuerzas Radiales:", result);
-    } catch (error) {
-        console.error("Error al calcular las fuerzas radiales:", error);
-    
-    }
 }

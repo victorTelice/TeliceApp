@@ -9,13 +9,13 @@ import Calcular_Seccionamiento_f, Calcular_Trazado_f, Calcular_Mensula_f
 
 
 datos_in = np.array([
-    ['Recta', 0.0, 100.0, 0.0, 'Izquierda'],
-    ['Clotoide Recta-Curva', 100.0, 150.0, 50.0, 'Derecha'],
-    ['Curva', 150.0, 200.0, 100.0, 'Derecha'],
-    ['Clotoide Curva-Recta', 200.0, 250.0, 150.0, 'Izquierda'],
-    ['Clotoide Curva-Curva (en C R1>R2)', 250.0, 300.0, 200.0, 'Izquierda'],
-    ['Clotoide Curva-Curva (en C R2>R1)', 300.0, 350.0, 250.0, 'Derecha'],
-    ['Curva', 350.0, 400.0, 450.0, 'Derecha']
+    [1, 0.0, 100.0, 0.0, 1],
+    [2, 100.0, 150.0, 50.0, -1],
+    [3, 150.0, 200.0, 100.0, -1],
+    [4, 200.0, 250.0, 150.0, 1],
+    [5, 250.0, 300.0, 200.0, 1],
+    [6, 300.0, 350.0, 250.0, -1],
+    [3, 350.0, 400.0, 450.0, -1]
 ])
 
 # Llamada a la función

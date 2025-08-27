@@ -83,15 +83,42 @@ async function getFiles() {
     pyodide.FS.writeFile(HerCatFile.name, uint8Array6);
     console.log(`📂 Archivo ${HerCatFile.name} cargado en Pyodide FS`);
         
-    // Leer archivo como ArrayBuffer
-    // Sacar coordenadas de descenttramientos
-    const fileCalc = "../python/Calcular_Seccionamientos.py"
-    const arrayBuffersecc = await fileCalc.arrayBuffer();
-    const uint8Arraysecc = new Uint8Array(arrayBuffersecc);
-    // Escribir en el FS virtual de Pyodide
-    pyodide.FS.writeFile(fileCalc.name, uint8Arraysecc);
-    console.log(`Archivo ${fileCalc.name} cargado en Pyodide`);
+    // Cargar el archivo Python desde la carpeta python
+    const response = await fetch("./python/Calcular_Seccionamiento_f.py");
+    const code = await response.text();
+
+    // Guardar en FS de Pyodide
+    pyodide.FS.writeFile("Calcular_Seccionamiento_f.py", code);
+    console.log("📂 Archivo Python Calcular_Seccionamiento cargado en Pyodide");
+
+
+    // Cargar el archivo Python desde la carpeta python
+    const responseFR = await fetch("./python/Fr_Calculo_f.py");
+    const codeFR = await responseFR.text();
+
+    // Guardar en FS de Pyodide
+    pyodide.FS.writeFile("Fr_Calculo_f.py", codeFR);
+    console.log("📂 Archivo Python calc_FR cargado en Pyodide");
+
+    // Cargar el archivo Python desde la carpeta python
+    const responseFV = await fetch("./python/Fv_Calculo_f.py");
+    const codeFV = await responseFV.text();
+
+    // Guardar en FS de Pyodide
+    pyodide.FS.writeFile("Fv_Calculo_f.py", codeFV);
+    console.log("📂 Archivo Python calc_FR cargado en Pyodide");
     
+    
+
+    // Cargar logger.py
+    const responseUtils = await fetch("./python/logger.py");
+    const codeUtils = await responseUtils.text();
+
+    // Guardar en FS de Pyodide dentro de /utils
+    pyodide.FS.writeFile("logger.py", codeUtils);
+
+    console.log("📂 Archivo Python logger cargado en Pyodide");
+
         // Creamos el diccionario kwargs en JS con rutas
     kwargs = {
       secc: seccFile.name,
@@ -118,7 +145,7 @@ from scipy.io import loadmat
 import numpy as np
 import pandas as pd
 import math
-import Calcular_Seccionamiento as cs
+import Calcular_Seccionamiento_f as cs
 # kwargs viene de JS como JSON string
 kwargs = json.loads('${JSON.stringify(kwargs)}')
 print("Archivos recibidos en Python:", kwargs)
@@ -202,15 +229,27 @@ datos_in = trazado_data['datos_in']
 npuntos= trazado_data['np']
 datos_tabla_tramos = trazado_data['datos_tabla_tramos']
 
+data = loadmat(secc)
+Coord_seccionamientos_eje = data['Coord_seccionamientos_eje']
+vectores_normal=data['vectores_normal']
+datos_tabla_vanos=data['datos_tabla_vanos']
+p_tabla_tipo=data['p_tabla_tipo']
+Coord_descentramientos=data['Coord_descentramientos']
+Fhc_Calculo=data['Fhc_Calculo']
+rel_comp=data['rel_comp']
 
-#nombres_postes=datos_tabla_vanos[::2, 0]
-#datos_vanos= np.concatenate((np.array([0]), datos_tabla_vanos[1:-1:2,3]))
-#datos_desc=datos_tabla_vanos[::2, 4].astype(float) * (-10) ##estaba en cm y lo queremos en mm
-#datos_alt=datos_tabla_vanos[::2, 5]
-#pki=datos_tabla_vanos[0,2]*1000 #queremos el primer pk en m
+nombres_postes=datos_tabla_vanos[::2, 0]
+datos_vanos= np.concatenate((np.array([0]), datos_tabla_vanos[1:-1:2,3]))
+datos_desc=datos_tabla_vanos[::2, 4].astype(float) * (-10) ##estaba en cm y lo queremos en mm
+datos_alt=datos_tabla_vanos[::2, 5]
+pki=datos_tabla_vanos[0,2]*1000 #queremos el primer pk en m
 pk_i=datos_tabla_tramos[:,1]*1000
 pk_f=datos_tabla_tramos[:,2]*1000
 print("Datos cargados satisfactoriamente")
+
+
+
+
 def limpiar_tabla(tabla):
     """
     Limpia un numpy.array de objetos con varias filas y columnas,
@@ -244,7 +283,7 @@ def native_type(val):
 
 
 # datos tabla vanos por separado
-data = loadmat(secc)
+
 data_cln = {k: v for k, v in data.items() if not k.startswith('__')}
 
 datos_tabla_vanos = data_cln.get('datos_tabla_vanos')
@@ -264,10 +303,16 @@ if datos_tabla_vanos is not None:
                 fila_flat.append(val)
         filas.append(fila_flat)
 
-
-seccionamientos=cs.calcular_Seccionamiento(datos_tabla_vanos, datos_vanos, datos_desc, datos_alt, pki, datos_tabla_tramos, Coord_trazado, npuntos, t_hc, t_hs, ro_hc, n_hhcc, tipo_pendolado, rel_comp, ancho_via, ancho_carril)
+import sys
+if "" not in sys.path:
+  sys.path.append("")  # permite imports relativos desde la raíz
+seccionamientos=cs.Seccionamientos_Calculo_f(datos_tabla_vanos, datos_vanos, datos_desc, datos_alt, pki, datos_tabla_tramos, Coord_trazado, npuntos, t_hc, t_hs, ro_hc, n_hhcc, tipo_pendolado, rel_comp, ancho_via, ancho_carril)
+print("coordenadas seccionamiento: ", seccionamientos[3])
 coord=seccionamientos[3]
-
+fR=seccionamientos[4]
+print("fR: ", fR)
+fv=seccionamientos[5]
+print("fv: ", fv)
 datos_validados = []
 for i in range(len(filas)):
     pk_km = filas[i][2]
@@ -344,65 +389,7 @@ resultados_json
   // Insertar en Excel
   await insertIntoExcel(result);
 }
-/*
-// --- Función para volcar datos en Excel ---
-async function insertIntoExcel(result) {
-  await Excel.run(async (context) => {
-    let sheets = context.workbook.worksheets;
-    sheets.load("items/name");
-    await context.sync();
 
-    for (const [key, val] of Object.entries(result)) {
-      let sheetName = key.substring(0, 31); // Excel limita nombres a 31 chars
-      let existingSheet = sheets.items.find(s => s.name === sheetName);
-      if (existingSheet) {
-        existingSheet.delete();
-      }
-      let sheet = sheets.add(sheetName);
-
-      let row = 0;
-
-      if (Array.isArray(val)) {
-        // --- Caso array ---
-        if (val.length > 0 && Array.isArray(val[0])) {
-          // Array 2D → tabla
-          val.forEach((subRow, i) => {
-            subRow.forEach((subVal, j) => {
-              sheet.getCell(row + i, j).values = [[subVal]];
-            });
-          });
-        } else {
-          // Array 1D → expandir en columnas
-          val.forEach((subVal, j) => {
-            sheet.getCell(row, j).values = [[subVal]];
-          });
-        }
-      } else if (typeof val === "object" && val !== null) {
-        // --- Caso objeto/dict ---
-        let col = 0;
-        for (const [subKey, subVal] of Object.entries(val)) {
-          // Poner clave en la primera fila
-          sheet.getCell(0, col).values = [[subKey]];
-          // Poner valor en la segunda fila
-          if (Array.isArray(subVal)) {
-            subVal.forEach((sv, i) => {
-              sheet.getCell(1 + i, col).values = [[sv]];
-            });
-          } else {
-            sheet.getCell(1, col).values = [[subVal]];
-          }
-          col++;
-        }
-      } else {
-        // --- Caso escalar ---
-        sheet.getCell(row, 0).values = [[val]];
-      }
-    }
-
-    await context.sync();
-  });
-} */
-// 🔧 Función para limpiar datos antes de insertar en Excel
 function limpiarParaExcel(data) {
   return data.map(row =>
     row.map(cell => {
@@ -488,8 +475,67 @@ async function insertIntoExcel(resultObj) {
   });
 }
 
+async function CalculaFR() {
+  let coordDescentramientos = [];
+  let t_hc = 0;
+  try {
+  // Leer datos de Excel
+  coordDescentramientos = await Excel.run(async (context) => {
+    const sheet = context.workbook.worksheets.getItem("coordenadas_descentramientos");
+
+    // Ojo: aquí ajusta el rango a tu número de filas reales
+    const range = sheet.getUsedRange();
+    range.load("values");
+
+    await context.sync();
+    return range.values; // devuelve la matriz n x 2
+  });
+  const t_hc=await Excel.run(async (context) => {
+    const sheet = context.workbook.worksheets.getItem("conductores");
+    const range = sheet.getRange("B2"); // t_hc en B2
+    range.load("values");
+    await context.sync();
+    return range.values[0][0]; // devuelve el valor escalar
+  });
+  console.log("Matriz leída desde Excel:", coordDescentramientos);
+  console.log("t_hc:", t_hc);
+} catch (e) {
+    console.error("Error al leer datos de Excel:", e);
+    return;
+  }
+  // Cargar Pyodide
+  const pyodide = await loadPyodide();
+  // Pasar la matriz y el parámetro
+  pyodide.globals.set("Coord_descentramientos", coordDescentramientos);
+  pyodide.globals.set("t_hc", t_hc);
+
+  // Ejecutar Python
+  await pyodide.runPythonAsync(`
+import json
+from scipy.io import loadmat
+import numpy as np
+import pandas as pd
+import math
+import Fr_Calculo_f as fr
+import sys
+if "" not in sys.path:
+  sys.path.append("")  # permite imports relativos desde la raíz
+resultado = fr.Fr_Calculo_f(Coord_descentramientos, t_hc)
+print("fR: ", resultado)
+return resultado
+
+  `);
+
+  // Recuperar el resultado
+  const result = pyodide.globals.get("resultado");
+  console.log("Resultado Python:", result);
+  insertIntoExcel({"Fr_Calculo_f": result});
+  return result;
+}
+
 
 
 
 // --- Botón para ejecutar ---
 document.getElementById("loadFiles").addEventListener("click", getFiles);
+document.getElementById("btnCalcularFr").addEventListener("click", CalculaFR);
