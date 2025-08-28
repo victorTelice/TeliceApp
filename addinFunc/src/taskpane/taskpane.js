@@ -490,7 +490,7 @@ async function CalculaFR() {
     await context.sync();
     return range.values; // devuelve la matriz n x 2
   });
-  const t_hc=await Excel.run(async (context) => {
+  t_hc=await Excel.run(async (context) => {
     const sheet = context.workbook.worksheets.getItem("conductores");
     const range = sheet.getRange("B2"); // t_hc en B2
     range.load("values");
@@ -505,31 +505,82 @@ async function CalculaFR() {
   }
   // Cargar Pyodide
   const pyodide = await loadPyodide();
+  console.log("✅ Pyodide listo");
+  await pyodide.loadPackage(["numpy", "pandas", "scipy"]);
+  
+  // Cargar el archivo Python desde la carpeta python
+  const responseFR = await fetch("./python/Fr_Calculo_f.py");
+  const codeFR = await responseFR.text();
+
+  // Guardar en FS de Pyodide
+  pyodide.FS.writeFile("Fr_Calculo_f.py", codeFR);
+  console.log("📂 Archivo Python calc_FR cargado en Pyodide");
+
+  // Cargar el archivo Python desde la carpeta python
+  const responseFV = await fetch("./python/Fv_Calculo_f.py");
+  const codeFV = await responseFV.text();
+
+  // Guardar en FS de Pyodide
+  pyodide.FS.writeFile("Fv_Calculo_f.py", codeFV);
+  console.log("📂 Archivo Python calc_FV cargado en Pyodide");
+
+
+
+  // Cargar logger.py
+  const responseUtils = await fetch("./python/logger.py");
+  const codeUtils = await responseUtils.text();
+
+  // Guardar en FS de Pyodide dentro de /utils
+  pyodide.FS.writeFile("logger.py", codeUtils);
+
+  console.log("📂 Archivo Python logger cargado en Pyodide");
+
+
+
   // Pasar la matriz y el parámetro
-  pyodide.globals.set("Coord_descentramientos", coordDescentramientos);
-  pyodide.globals.set("t_hc", t_hc);
+  //pyodide.globals.set("Coord_descentramientos", coordDescentramientos);
+  //pyodide.globals.set("t_hc", t_hc);
 
   // Ejecutar Python
-  await pyodide.runPythonAsync(`
+ const result= await pyodide.runPythonAsync(`
 import json
 from scipy.io import loadmat
 import numpy as np
-import pandas as pd
-import math
 import Fr_Calculo_f as fr
 import sys
 if "" not in sys.path:
   sys.path.append("")  # permite imports relativos desde la raíz
-resultado = fr.Fr_Calculo_f(Coord_descentramientos, t_hc)
-print("fR: ", resultado)
-return resultado
 
+
+Coord_descentramientos = json.loads('${JSON.stringify(coordDescentramientos)}')
+print("coordenadas descentramiento desde JS: ", Coord_descentramientos)
+coord_descentramientos = np.array(Coord_descentramientos, dtype=float)
+print("coordenadas descentramiento como array numpy: ", coord_descentramientos)
+
+
+# t_hc = json.loads('${JSON.stringify(t_hc)}')
+t_hc = ${t_hc}
+print("t_hc desde JS: ", ${t_hc})
+print("t_hc : ", t_hc)
+
+
+resultado = fr.Fr_Calculo_f(coord_descentramientos, t_hc)
+print("fR: ", resultado)
+
+if isinstance(resultado, np.ndarray):
+    resultado = resultado.tolist()
+
+resultado=json.dumps(resultado)  # convertir a JSON
+
+print("resultado en python:", resultado)
+resultado
   `);
 
-  // Recuperar el resultado
-  const result = pyodide.globals.get("resultado");
   console.log("Resultado Python:", result);
-  insertIntoExcel({"Fr_Calculo_f": result});
+  const parsed = JSON.parse(result); // array de arrays
+  parsed.map(v => [v]); // asegurar 2D (columna en Excel)
+  console.log("excelInput: ", parsed);
+  insertIntoExcel({"Fr_Calculo_f": parsed});
   return result;
 }
 

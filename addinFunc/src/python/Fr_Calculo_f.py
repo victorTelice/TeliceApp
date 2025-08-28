@@ -13,7 +13,7 @@ def Fr_Calculo_f(Coord_descentramientos, t_hc):
     Returns:
     - Fr_Calculo: Array con las fuerzas radiales calculadas.
     """
-    
+    print("coordenadas descentramiento en la funcion: \n", Coord_descentramientos)
     Logger.add_to_log("llamada", "Llamada a la función Fr_Calculo_f")
     
     t_hc = float(t_hc)
