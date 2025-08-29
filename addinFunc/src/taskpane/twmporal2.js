@@ -15,99 +15,6 @@ async function initPyodide() {
 
 initPyodide();
 
-async function insertarVanosCustom(datos_tabla_vanos, nombreHoja = "Vanos") {
-  await Excel.run(async (context) => {
-    try {
-      const sheets = context.workbook.worksheets;
-
-      // Validación básica
-      const { postes, tipo, pk_Postes, vanos, desc, alturas } = datos_tabla_vanos;
-
-      if (
-        !Array.isArray(postes) ||
-        !Array.isArray(tipo) ||
-        !Array.isArray(pk_Postes) ||
-        !Array.isArray(vanos) ||
-        !Array.isArray(desc) ||
-        !Array.isArray(alturas)
-      ) {
-        console.error("❌ Uno o más campos no son arrays válidos.");
-        return;
-      }
-
-      const numFilas = postes.length;
-      if (
-        vanos.length !== numFilas ||
-        desc.length !== numFilas ||
-        alturas.length !== numFilas ||
-        pk_Postes.length !== numFilas
-      ) {
-        console.error("❌ Las longitudes de los arrays no coinciden.");
-        return;
-      }
-
-      // Borrar hoja si existe
-      let existingSheet;
-      try {
-        existingSheet = sheets.getItem(nombreHoja);
-        existingSheet.delete();
-        await context.sync();
-      } catch (e) {
-        // No existe, todo bien
-      }
-
-      const sheet = sheets.add(nombreHoja);
-
-      // Encabezados
-      const headers = [
-        ["Poste", "Tipo de ménsula", "PK", "Vano (m)", "Descentramento (cm)", "Altura hhcc (mm)"]
-      ];
-      const data = [];
-
-      for (let i = 0; i < numFilas; i++) {
-        const pkValue = pk_Postes[i] ?? "";
-
-        // Fila con datos del poste
-        data.push([
-          postes[i],
-          tipo[i * 2] || "",
-          pkValue,
-          "", // vano va en la siguiente fila
-          desc[i],
-          alturas[i]
-        ]);
-
-        // Fila con solo el vano
-         if (i <vanos.length-1) {
-          data.push([
-             "", "", "", vanos[i+1], "", ""
-          ]);
-          }
-        
-      }
-
-      const allData = headers.concat(data);
-
-      const range = sheet.getRangeByIndexes(
-        0,
-        0,
-        allData.length,
-        allData[0].length
-      );
-      range.values = allData;
-
-      range.format.autofitColumns();
-      range.format.autofitRows();
-
-      console.log(`✅ Datos insertados en la hoja: ${nombreHoja}`);
-      await context.sync();
-    } catch (err) {
-      console.error("❌ Error al insertar datos en Excel:", err);
-    }
-  });
-}
-
-
 
 async function getFiles() {
   // Recoger archivos de los inputs HTML
@@ -244,6 +151,17 @@ kwargs = json.loads('${JSON.stringify(kwargs)}')
 print("Archivos recibidos en Python:", kwargs)
 
 
+def to_serializable(obj):
+    """Convierte objetos de NumPy a tipos nativos JSON serializables."""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()  # array -> lista anidada
+    if isinstance(obj, np.generic):
+        return obj.item()    # int32, float64 -> int o float
+    if isinstance(obj, (list, tuple)):
+        return [to_serializable(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: to_serializable(v) for k, v in obj.items()}
+    return obj
 
 
 def limpiar_tabla(tabla):
@@ -267,23 +185,6 @@ def limpiar_tabla(tabla):
             fila_limpia.append(item)
         tabla_limpia.append(fila_limpia)
     return tabla_limpia
-
-
-
-def to_serializable(obj):
-    """Convierte objetos de NumPy a tipos nativos JSON serializables."""
-    if isinstance(obj, np.ndarray):
-        # Si es un array de un solo elemento, extraer el escalar
-        if obj.size == 1:
-            return obj.item()
-        return obj.tolist()  # array -> lista anidada
-    if isinstance(obj, np.generic):
-        return obj.item()    # int32, float64 -> int o float
-    if isinstance(obj, (list, tuple)):
-        return [to_serializable(x) for x in obj]
-    if isinstance(obj, dict):
-        return {k: to_serializable(v) for k, v in obj.items()}
-    return obj
 
 
 
@@ -376,31 +277,28 @@ Fhc_Calculo=data['Fhc_Calculo']
 rel_comp=data['rel_comp']
 
 nombres_postes=datos_tabla_vanos[::2, 0]
-print("nombres_postes: ", limpiar_tabla(nombres_postes.tolist()))
+print("nombres_postes: ", limpiar_tabla(nombres_postes))
 datos_vanos= np.concatenate((np.array([0]), datos_tabla_vanos[1:-1:2,3]))
-print("datos vanos: ", to_serializable(datos_vanos.tolist()))
+print("datos vanos: ", to_serializable(datos_vanos))
 datos_desc=datos_tabla_vanos[::2, 4].astype(float) * (-10) ##estaba en cm y lo queremos en mm
-print("datos desc: ", to_serializable(datos_desc.tolist()))
+print("datos desc: ", to_serializable(datos_desc))
 datos_alt=datos_tabla_vanos[::2, 5]
-print("datos alt: ", to_serializable(datos_alt.tolist()))
+print("datos alt: ", to_serializable(datos_alt))
 pki=datos_tabla_vanos[0,2]*1000 #queremos el primer pk en m
-pkTabla=datos_tabla_vanos[::2,2]*1000
-print("pkTabla: ", pkTabla)
-print("pki: ", pki)
+print("pki: ", to_serializable(pki))
 pk_i=datos_tabla_tramos[:,1]*1000
 pk_f=datos_tabla_tramos[:,2]*1000
 tipo=datos_tabla_vanos[:,1]
-print("tipo: ", limpiar_tabla(tipo.tolist()))
+print("tipo: ", limpiar_tabla(tipo))
 
 datos_tabla_vanos_Excel={
-    "postes": nombres_postes.tolist(),
-    "tipo": tipo.tolist(),
-    "vanos": datos_vanos.tolist(),
-    "desc": datos_desc.tolist(),
-    "alturas": datos_alt.tolist(),
-    "pk_Postes": pkTabla.tolist()
+    "postes": limpiar_tabla(nombres_postes),
+    "tipo": limpiar_tabla(tipo),
+    "vanos": to_serializable(datos_vanos),
+    "desc": to_serializable(datos_desc),
+    "alturas": to_serializable(datos_alt),
+    "pki": to_serializable(pki)
 }
-datos_tabla_vanos_Excel = datos_tabla_vanos_Excel
 print("datos tabla vanos: ")
 print(datos_tabla_vanos_Excel)
 
@@ -515,7 +413,6 @@ resultados_json
 
   // Insertar en Excel
   await insertIntoExcel(result);
-  await insertarVanosCustom(result["datos_tabla_vanos"], "Vanos");
 }
 
 function limpiarParaExcel(data) {
@@ -550,7 +447,7 @@ async function insertIntoExcel(resultObj) {
 
         // Limitar nombre a 31 caracteres (Excel)
         const safeSheetName = sheetName.substring(0, 31);
-        if(safeSheetName=="datos_tabla_vanos") continue; // ya creada con formato especial
+
         // Borrar hoja si existe
         let existingSheet;
         try {
@@ -560,7 +457,7 @@ async function insertIntoExcel(resultObj) {
         } catch (e) {
           // La hoja no existía, ok
         }
-        
+
         // Crear hoja nueva
         const sheet = sheets.add(safeSheetName);
 
@@ -603,258 +500,33 @@ async function insertIntoExcel(resultObj) {
   });
 }
 
-
 async function CalculaFR() {
   let coordDescentramientos = [];
   let t_hc = 0;
-  // antes de engamchar coordenadas descentramientos y t_hc tengo que volver a generar coordenadoas descentramientos no vaya a ser que algun bujarrilla lo haya cambiado 
-  try{
-     // Cargar Pyodide
-    const pyodide = await loadPyodide();
-    console.log("✅ Pyodide listo");
-    await pyodide.loadPackage(["numpy", "pandas", "scipy"]);
-    
-    // Cargar el archivo Python desde la carpeta python
-    const responseSecc = await fetch("./python/Calcular_Seccionamiento_f.py");
-    const codeSecc = await responseSecc.text();
-
-    // Guardar en FS de Pyodide
-    pyodide.FS.writeFile("Calcular_Seccionamiento_f.py", codeSecc);
-    console.log("📂 Archivo Python Calcular_Seccionamientos cargado en Pyodide");
-    
-
-    // Cargar el archivo Python desde la carpeta python
-    const responseFR = await fetch("./python/Fr_Calculo_f.py");
-    const codeFR = await responseFR.text();
-
-    // Guardar en FS de Pyodide
-    pyodide.FS.writeFile("Fr_Calculo_f.py", codeFR);
-    console.log("📂 Archivo Python calc_FR cargado en Pyodide");
-
-    // Cargar el archivo Python desde la carpeta python
-    const responseFV = await fetch("./python/Fv_Calculo_f.py");
-    const codeFV = await responseFV.text();
-
-    // Guardar en FS de Pyodide
-    pyodide.FS.writeFile("Fv_Calculo_f.py", codeFV);
-    console.log("📂 Archivo Python calc_FR cargado en Pyodide");
-    
-    
-
-  // Cargar logger.py
-    const responseUtils = await fetch("./python/logger.py");
-    const codeUtils = await responseUtils.text();
-
-    // Guardar en FS de Pyodide dentro de /utils
-    pyodide.FS.writeFile("logger.py", codeUtils);
-
-    console.log("📂 Archivo Python logger cargado en Pyodide");
-
-
-    //ahroa sacamos todos los datos de las hojas de excel
-    datos_tabla_vanos = await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("Vanos");
-
-      // Ojo: aquí ajusta el rango a tu número de filas reales
-      const range = sheet.getUsedRange();
-      range.load("values");
-
-      await context.sync();
-      return range.values; // devuelve la matriz n x 2
-    });
-    print("Matriz leída desde Excel:", datos_tabla_vanos);
-    const datos_vanos = [];
-
-    for (let i = 2; i < datos_tabla_vanos.length - 1; i += 2) {
-      datos_vanos.push(datos_tabla_vanos[i][3]);
-    }
-    datos_desc = [];
-    for (let i = 1; i < datos_tabla_vanos.length; i += 2) {
-      datos_desc.push(datos_tabla_vanos[i][4]);
-    }
-    datos_alt = [];
-    for (let i = 1; i < datos_tabla_vanos.length; i += 2) {
-      datos_alt.push(datos_tabla_vanos[i][5]);
-    }
-    pki = datos_tabla_vanos[1][2] * 1000; //queremos el primer pk en m
-    console.log("datos vanos: ", datos_vanos);
-    console.log("datos desc: ", datos_desc);
-    console.log("datos alt: ", datos_alt);
-    console.log("pki: ", pki);
-    datos_tabla_tramos = await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("datos_tabla_tramos");  
-      
-      // Ojo: aquí ajusta el rango a tu número de filas reales
-      const range = sheet.getUsedRange();
-      range.load("values");
-
-      await context.sync();
-      return range.values; 
-    });
-    console.log("Matriz leída desde Excel:", datos_tabla_tramos);
-    tabla_conductores = await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("conductores");
-      // Ojo: aquí ajusta el rango a tu número de filas reales
-      const range = sheet.getUsedRange();
-      range.load("values"); 
-      await context.sync();
-      return range.values; 
-    });
-    console.log("Matriz leída desde Excel:", tabla_conductores);
-    t_hc = tabla_conductores[1][1]; // t_hc en B2
-    t_hs = tabla_conductores[1][4]; // t_hs en B3
-    ro_hc = tabla_conductores[1][5]; // ro_hc en B4
-    n_hhcc = tabla_conductores[1][7]; // n_hhcc en B7
-    tipo_pendolado = tabla_conductores[1][6]; // tipo_pendolado en B6
-    console.log("t_hc:", t_hc);
-    console.log("t_hs:", t_hs);
-    console.log("ro_hc:", ro_hc);
-    console.log("n_hhcc:", n_hhcc);
-    console.log("tipo_pendolado:", tipo_pendolado);
-
-
-
-    // Leer datos de Excel
-    via = await Excel.run(async (context) => { 
-      const sheet = context.workbook.worksheets.getItem("via");
-      // Ojo: aquí ajusta el rango a tu número de filas reales
-      const range = sheet.getUsedRange();
-      range.load("values");
-      await context.sync();
-      return range.values; 
-    });
-    console.log("Matriz leída desde Excel:", via);
-    ancho_via = via[1][0]; // ancho_via en B2
-    ancho_carril = via[1][1]; // ancho_carril en B3
-    console.log("ancho_via:", ancho_via);
-    console.log("ancho_carril:", ancho_carril);
-
-    // datos de trazados del .mat
-    const fileInput3=document.getElementById("fileTrz");
-    const trzFile = fileInput3.files[0];
-    
-    const arrayBuffer3 = await trzFile.arrayBuffer();
-    const uint8Array3 = new Uint8Array(arrayBuffer3);
-    // Pasar archivo al FS virtual de Pyodide
-    pyodide.FS.writeFile(trzFile.name, uint8Array3);
-    console.log(`📂 Archivo ${trzFile.name} cargado en Pyodide FS`);
-
-    // datos de seccionamientos del .mat
-    const fileInput = document.getElementById("fileSecc");
-    const seccFile = fileInput.files[0];
-    const arrayBuffer = await seccFile.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    // Pasar archivo al FS virtual de Pyodide
-    pyodide.FS.writeFile(seccFile.name, uint8Array);
-    console.log(`📂 Archivo ${seccFile.name} cargado en Pyodide FS`);
-    kwargs = {
-      secc: seccFile.name,
-      trz: trzFile.name,
-    };
-    pyodide.globals.set("kwargs", kwargs);
-  
-    const descNuevo= await pyodide.runPythonAsync(`
-    import json
-    from scipy.io import loadmat
-    import numpy as np
-    import pandas as pd
-    import math
-    import Calcular_Seccionamiento_f as cs
-
-    # Sacar coordenadas trazado
-    kwargs = json.loads('${JSON.stringify(kwargs)}')
-    trazado = kwargs['trz']
-    secc = kwargs['secc']
-    trazado_data = loadmat(trazado)
-    Coord_trazado = trazado_data['Coord_trazado']
-    print("Coord_trazado: ", Coord_trazado)
-    npuntos= trazado_data['np']
-    print("npuntos: ", npuntos)
-    data=loadmat('${seccFile.name}')
-    rel_comp=data['rel_comp']
-    
-
-
-    datos_tabla_vanos = json.loads('${JSON.stringify(datos_tabla_vanos)}')
-    datos_tabla_tramos = json.loads('${JSON.stringify(datos_tabla_tramos)}')
-    tipo_pendolado=json.loads('${JSON.stringify(tipo_pendolado)}')
-    datos_vanos = json.loads('${JSON.stringify(datos_vanos)}')
-    datos_desc = json.loads('${JSON.stringify(datos_desc)}')
-    datos_alt = json.loads('${JSON.stringify(datos_alt)}')
-    # casteo a numpy de la tablapara que funcione la funcion 
-    try:
-        datos_tabla_tramos = np.array(datos_tabla_tramos)
-    except Exception as e:
-        print("Error al convertir datos_tabla_tramos a np.array:", e)
-    
-
-    seccionamientos=[]
-
-    # casteo a numpy de los numerines para que funcione la funcion 
-    try:
-        pki = ${pki}
-        print("pki antes del casteo: ", pki)
-        pki.astype(int32)
-        print("pki despues del casteo: ", pki)
-        t_hc=${t_hc}
-        t_hc.astype(float64)
-        t_hs=${t_hs}
-        t_hc.astype(float64)
-        ro_hc=${ro_hc}
-        ro_hc.astype(float64)
-        n_hhc=${n_hhcc}
-        n_hhcc.astype(float64)
-        ancho_via=${ancho_via}
-        ancho_via.astype(float64)
-        ancho_carril=${ancho_carril}
-        ancho_carril.astype(float64)
-
-
-        
-        print("datos_vanos: ", datos_vanos)
-        print("datos_desc: ", datos_desc)
-        print("datos_alt: ", datos_alt)
-
-        print("tipo_pendolado: ", tipo_pendolado)
-        print("datos_tabla_vanos: ", datos_tabla_vanos)
-        print("datos_tabla_tramos: ", datos_tabla_tramos)
-        seccionamientos=cs.Seccionamientos_Calculo_f(datos_tabla_vanos, datos_vanos, datos_desc, datos_alt, pki, datos_tabla_tramos, Coord_trazado, npuntos, t_hc, t_hs, ro_hc, n_hhcc, tipo_pendolado, rel_comp, ancho_via, ancho_carril)
-        print("coordenadas seccionamiento: ", seccionamientos[3])
-    except Exception as e:
-        print("numerines fallan", e)
-
-
-    `)
-
-  }catch(e){
-    console.error("Error intentar generar descentramientos nuevos:", e);
-    return;
-  }
- 
   try {
-    // Leer datos de Excel
-    coordDescentramientos = await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("coordenadas_descentramientos");
+  // Leer datos de Excel
+  coordDescentramientos = await Excel.run(async (context) => {
+    const sheet = context.workbook.worksheets.getItem("coordenadas_descentramientos");
 
-      // Ojo: aquí ajusta el rango a tu número de filas reales
-      const range = sheet.getUsedRange();
-      range.load("values");
+    // Ojo: aquí ajusta el rango a tu número de filas reales
+    const range = sheet.getUsedRange();
+    range.load("values");
 
-      await context.sync();
-      return range.values; // devuelve la matriz n x 2
-    });
-    t_hc=await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("conductores");
-      const range = sheet.getRange("B2"); // t_hc en B2
-      range.load("values");
-      await context.sync();
-      return range.values[0][0]; // devuelve el valor escalar
-    });
-    console.log("Matriz leída desde Excel:", coordDescentramientos);
-    console.log("t_hc:", t_hc);
-  } catch (e) {
-      console.error("Error al leer datos de Excel:", e);
-      return;
+    await context.sync();
+    return range.values; // devuelve la matriz n x 2
+  });
+  t_hc=await Excel.run(async (context) => {
+    const sheet = context.workbook.worksheets.getItem("conductores");
+    const range = sheet.getRange("B2"); // t_hc en B2
+    range.load("values");
+    await context.sync();
+    return range.values[0][0]; // devuelve el valor escalar
+  });
+  console.log("Matriz leída desde Excel:", coordDescentramientos);
+  console.log("t_hc:", t_hc);
+} catch (e) {
+    console.error("Error al leer datos de Excel:", e);
+    return;
   }
   // Cargar Pyodide
   const pyodide = await loadPyodide();
@@ -879,7 +551,21 @@ async function CalculaFR() {
 
 
 
-  
+  // Cargar logger.py
+  const responseUtils = await fetch("./python/logger.py");
+  const codeUtils = await responseUtils.text();
+
+  // Guardar en FS de Pyodide dentro de /utils
+  pyodide.FS.writeFile("logger.py", codeUtils);
+
+  console.log("📂 Archivo Python logger cargado en Pyodide");
+
+
+
+  // Pasar la matriz y el parámetro
+  //pyodide.globals.set("Coord_descentramientos", coordDescentramientos);
+  //pyodide.globals.set("t_hc", t_hc);
+
   // Ejecutar Python
  const result= await pyodide.runPythonAsync(`
 import json

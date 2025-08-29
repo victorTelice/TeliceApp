@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from logger import Logger 
+
 
 
 def Fr_Calculo_f(Coord_descentramientos, t_hc):
@@ -14,7 +14,6 @@ def Fr_Calculo_f(Coord_descentramientos, t_hc):
     - Fr_Calculo: Array con las fuerzas radiales calculadas.
     """
     print("coordenadas descentramiento en la funcion: \n", Coord_descentramientos)
-    Logger.add_to_log("llamada", "Llamada a la función Fr_Calculo_f")
     
     t_hc = float(t_hc)
     
@@ -89,7 +88,6 @@ def Fr_Calculo_f_antigua(Coord_descentramientos, t_hc):
     - Fr_Calculo: Array con las fuerzas radiales calculadas.
     """
 
-    Logger.add_to_log("llamada", "Llamada a la función Fr_Calculo_f")
 
     t_hc=float(t_hc)
     # 1. Calcular pendientes recta-vanos
